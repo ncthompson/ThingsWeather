@@ -2,6 +2,7 @@ package influxif
 
 import (
 	"github.com/influxdata/influxdb/client/v2"
+	"strconv"
 	"time"
 	"weathergetter/thingsif"
 )
@@ -31,6 +32,24 @@ func InitialiseInfluxClient(conf InfluxConfig) (*influxIf, error) {
 	return inf, err
 }
 
+func addDataPoint(name string, value float64, ts time.Time, tags map[string]string, bp client.BatchPoints) error {
+
+	field := map[string]interface{}{
+		"value": value,
+	}
+	pt, err := client.NewPoint(
+		name,
+		tags,
+		field,
+		ts,
+	)
+	if err != nil {
+		return err
+	}
+	bp.AddPoint(pt)
+	return nil
+}
+
 func (inf *influxIf) dataToBatch(data *thingsif.Message) (client.BatchPoints, error) {
 
 	timeStamp, err := time.Parse(time.RFC3339Nano, data.Metadata.Time)
@@ -48,50 +67,65 @@ func (inf *influxIf) dataToBatch(data *thingsif.Message) (client.BatchPoints, er
 
 	//Temperature
 	tags := map[string]string{
-		"device-id": data.DevId,
+		"device-id":       data.DevId,
+		"hardware-serial": data.HwSerial,
+		"port":            strconv.Itoa(data.Port),
 	}
+	pld := data.Payload_fields
+	meta := data.Metadata
+	if pld.Valid {
 
-	fieldTemp := map[string]interface{}{
-		"value": data.Payload_fields.Temp,
-	}
-	ptTemp, err := client.NewPoint(
-		"temperature",
-		tags,
-		fieldTemp,
-		timeStamp,
-	)
-	fieldHumd := map[string]interface{}{
-		"value": data.Payload_fields.Humd,
-	}
-	if err != nil {
-		return bp, err
-	}
-	ptHumd, err := client.NewPoint(
-		"humidity",
-		tags,
-		fieldHumd,
-		timeStamp,
-	)
-	if err != nil {
-		return bp, err
-	}
-	fieldBat := map[string]interface{}{
-		"value": data.Payload_fields.Bat,
-	}
-	ptBat, err := client.NewPoint(
-		"battery-voltage",
-		tags,
-		fieldBat,
-		timeStamp,
-	)
+		err = addDataPoint("temperature", pld.Temp, timeStamp, tags, bp)
+		if err != nil {
+			return bp, err
+		}
 
+		err = addDataPoint("humidity", pld.Humd, timeStamp, tags, bp)
+		if err != nil {
+			return bp, err
+		}
+
+		err = addDataPoint("battery-voltage", pld.Bat, timeStamp, tags, bp)
+		if err != nil {
+			return bp, err
+		}
+	}
+	tags["modulation"] = meta.Modulation
+	tags["data_rate"] = meta.DataRate
+	tags["coding_rate"] = meta.CodingRate
+
+	err = addDataPoint("frequency", meta.Frequency, timeStamp, tags, bp)
 	if err != nil {
 		return bp, err
 	}
 
-	bp.AddPoint(ptTemp)
-	bp.AddPoint(ptHumd)
-	bp.AddPoint(ptBat)
+	for i := 0; i < len(meta.Gateways); i++ {
+		gw := meta.Gateways[i]
+		tagsGw := tags
+		tagsGw["gtw_id"] = gw.GtwId
+		tagsGw["channel"] = strconv.Itoa(gw.Channel)
+		err = addDataPoint("rssi", gw.Rssi, timeStamp, tagsGw, bp)
+		if err != nil {
+			return bp, err
+		}
+		err = addDataPoint("snr", gw.Snr, timeStamp, tagsGw, bp)
+		if err != nil {
+			return bp, err
+		}
+		err = addDataPoint("altitude", gw.Altitude, timeStamp, tagsGw, bp)
+		if err != nil {
+			return bp, err
+		}
+		err = addDataPoint("latitude", gw.Latitude, timeStamp, tagsGw, bp)
+		if err != nil {
+			return bp, err
+		}
+		err = addDataPoint("longitude", gw.Longitude, timeStamp, tagsGw, bp)
+		if err != nil {
+			return bp, err
+		}
+	}
+
 	return bp, nil
 }
 
