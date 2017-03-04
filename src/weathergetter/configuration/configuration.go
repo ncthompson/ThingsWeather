@@ -21,7 +21,6 @@ func sampleConfig() GetterConfig {
 	}
 
 	mq := thingsif.MqttConfig{
-		Region:   "eu",
 		Username: "application_id",
 		Password: "access_key",
 	}

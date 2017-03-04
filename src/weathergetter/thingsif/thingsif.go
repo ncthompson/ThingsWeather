@@ -2,8 +2,11 @@ package thingsif
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"io/ioutil"
+	"net/http"
 	"os"
 )
 
@@ -52,11 +55,27 @@ type NodeEntry struct {
 }
 
 /*
+ * Handler structure
+ */
+
+type HandMessage struct {
+	Services []HandServ `json:"services"`
+}
+
+type HandServ struct {
+	MqttAddr string     `json:"mqtt_address"`
+	Metadata []HandMeta `json:"metadata"`
+}
+
+type HandMeta struct {
+	AppId string `json:"app_id"`
+}
+
+/*
    Configuration
 */
 
 type MqttConfig struct {
-	Region   string
 	Username string
 	Password string
 }
@@ -64,17 +83,23 @@ type MqttConfig struct {
 type mqttCli struct {
 	choke chan [2]string
 	cli   MQTT.Client
+	conf  MqttConfig
 }
 
 func InitialiseMqttClient(conf MqttConfig) (*mqttCli, error) {
 	mqtt := &mqttCli{}
+	mqtt.conf = conf
 
 	opts := MQTT.NewClientOptions()
 	opts.SetAutoReconnect(true)
 	opts.SetMessageChannelDepth(1024)
 	opts.SetPassword(conf.Password)
 	opts.SetUsername(conf.Username)
-	broker := "tcp://" + conf.Region + ".thethings.network:1883"
+	url, err := mqtt.getBroker()
+	if err != nil {
+		return nil, err
+	}
+	broker := "tcp://" + url
 	opts.AddBroker(broker)
 	topic := "+/devices/+/up"
 	opts.OnConnect = func(c MQTT.Client) {
@@ -98,6 +123,35 @@ func InitialiseMqttClient(conf MqttConfig) (*mqttCli, error) {
 	mqtt.cli = mqttCli
 
 	return mqtt, nil
+}
+
+func (mq *mqttCli) getBroker() (string, error) {
+	resp, err := http.Get("http://discovery.thethingsnetwork.org:8080/announcements/handler")
+	if err != nil {
+		return "", fmt.Errorf("Failed to get broker: %v", err)
+	}
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("Failed to get broker: %v", resp.Status)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("Failed to get broker: %v", err)
+	}
+	services := &HandMessage{}
+	err = json.Unmarshal(body, services)
+	if err != nil {
+		return "", fmt.Errorf("Failed to get broker: %v", err)
+	}
+	for i := 0; i < len(services.Services); i++ {
+		serv := services.Services[i]
+		for j := 0; j < len(serv.Metadata); j++ {
+			met := serv.Metadata[j]
+			if met.AppId == mq.conf.Username {
+				return serv.MqttAddr, nil
+			}
+		}
+	}
+	return "", errors.New("Application username not found.")
 }
 
 /*
