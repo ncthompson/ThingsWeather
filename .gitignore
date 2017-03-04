@@ -22,3 +22,16 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+# Folders to ignore
+bin/
+pkg/
+src/github.com/
+src/golang.org/
+
+# Ignore config file to avoid pushing personal info
+config.json
+
+# Idea files
+.idea/
+*.iml
