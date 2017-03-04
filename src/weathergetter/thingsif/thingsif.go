@@ -12,6 +12,7 @@ import (
 */
 
 type GwMetadata struct {
+	Timestamp  int64   `json:"timestamp"`
 	GtwId      string  `json:"gtw_id"`
 	GtwTrusted bool    `json:"gtw_trusted"`
 	Channel    int     `json:"channel"`
