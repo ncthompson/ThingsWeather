@@ -136,3 +136,60 @@ func (inf *influxIf) WriteToDatabase(data *thingsif.Message) error {
 	}
 	return inf.cli.Write(batch)
 }
+
+func (inf *influxIf) SyncDatabase(data []thingsif.DbMessage) error {
+
+	log.Printf("Entries: %v\n", len(data))
+	added := 0
+	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
+		Database:  inf.conf.Database,
+		Precision: precision,
+	})
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(data); i++ {
+		ts, err := time.Parse(time.RFC3339Nano, data[i].Time)
+		if err != nil {
+			return err
+		}
+		// Assume all point will be logged together.
+		query := fmt.Sprintf("select * from temperature where time=%v;", ts.UnixNano())
+		q := client.NewQuery(query, inf.conf.Database, precision)
+
+		response, err := inf.cli.Query(q)
+		if err != nil {
+			log.Println(err.Error())
+			return err
+
+		}
+		if len(response.Results[0].Series) == 0 {
+			pld := data[i]
+			if pld.Valid {
+				added++
+				tags := map[string]string{
+					"device-id": data[i].DevId,
+				}
+				err = addDataPoint("temperature", pld.Temp, ts, tags, bp)
+				if err != nil {
+					return err
+				}
+
+				err = addDataPoint("humidity", pld.Humd, ts, tags, bp)
+				if err != nil {
+					return err
+				}
+
+				err = addDataPoint("battery-voltage", pld.Bat, ts, tags, bp)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	log.Printf("Points synced: %v\n", added)
+	if len(bp.Points()) > 0 {
+		return inf.cli.Write(bp)
+	}
+	return nil
+}
