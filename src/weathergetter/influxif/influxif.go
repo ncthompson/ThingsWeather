@@ -107,6 +107,7 @@ func (inf *influxIf) dataToBatch(data *thingsif.Message) (client.BatchPoints, er
 		tagsGw := tags
 		tagsGw["gtw_id"] = gw.GtwId
 		tagsGw["channel"] = strconv.Itoa(gw.Channel)
+		tagsGw["frequency"] = strconv.FormatFloat(meta.Frequency, 'f', 1, 64)
 		err = addDataPoint("rssi", gw.Rssi, timeStamp, tagsGw, bp)
 		if err != nil {
 			return bp, err
