@@ -1,11 +1,15 @@
 package influxif
 
 import (
+	"fmt"
 	"github.com/influxdata/influxdb/client/v2"
+	"log"
 	"strconv"
 	"time"
 	"weathergetter/thingsif"
 )
+
+const precision = "ns"
 
 type InfluxConfig struct {
 	HostAddress string
@@ -59,13 +63,12 @@ func (inf *influxIf) dataToBatch(data *thingsif.Message) (client.BatchPoints, er
 
 	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
 		Database:  inf.conf.Database,
-		Precision: "us",
+		Precision: precision,
 	})
 	if err != nil {
 		return bp, err
 	}
 
-	//Temperature
 	tags := map[string]string{
 		"device-id":       data.DevId,
 		"hardware-serial": data.HwSerial,
