@@ -2,7 +2,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"log"
+	"os"
 	"weathergetter/configuration"
 	"weathergetter/influxif"
 	"weathergetter/thingsif"
@@ -15,39 +16,42 @@ func main() {
 	if *createTemplate {
 		err := configuration.CreateConfigTemplate()
 		if err != nil {
-			fmt.Printf("Configuration creation error: %v.\n", err)
+			log.Fatalf("Configuration creation error: %v.\n", err)
 		}
-		return
+		os.Exit(0)
 	}
 
 	config, err := configuration.OpenConfig(*configFile)
 	if err != nil {
-		fmt.Printf("Failed to open configuraion: %v.\n", err)
-		return
+		log.Fatalf("Failed to open configuraion: %v.\n", err)
 	}
 
 	mqtt, err := thingsif.InitialiseMqttClient(config.MConfig)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to start MQTT client: %v\n", err)
 	}
 	inf, err := influxif.InitialiseInfluxClient(config.DbConfig)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to start Influxdb client: %v\n", err)
 	}
+
+	hist, err := mqtt.GetLast7days()
+
+	inf.SyncDatabase(hist)
 
 	for {
 		nodeData, err := mqtt.WaitForData()
 		if err != nil {
-			fmt.Printf("Error: %v", err)
+			log.Printf("Error: %v", err)
 		} else {
-			fmt.Printf("Time: %v\n", nodeData.Metadata.Time)
-			fmt.Printf("Temperature: %v\n", nodeData.Payload_fields.Temp)
-			fmt.Printf("Humidity: %v\n", nodeData.Payload_fields.Humd)
-			fmt.Printf("Battery: %v\n", nodeData.Payload_fields.Bat)
+			log.Printf("Time: %v\n", nodeData.Metadata.Time)
+			log.Printf("Temperature: %v\n", nodeData.Payload_fields.Temp)
+			log.Printf("Humidity: %v\n", nodeData.Payload_fields.Humd)
+			log.Printf("Battery: %v\n", nodeData.Payload_fields.Bat)
 			thingsif.PrintGatways(nodeData.Metadata.Gateways)
 			err := inf.WriteToDatabase(nodeData)
 			if err != nil {
-				fmt.Printf("Batch point error: %v\n", err)
+				log.Printf("Batch point error: %v\n", err)
 			}
 		}
 	}
