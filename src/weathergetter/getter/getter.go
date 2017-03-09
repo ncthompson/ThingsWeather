@@ -2,8 +2,12 @@ package main
 
 import (
 	"flag"
+	sysd "github.com/coreos/go-systemd/daemon"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 	"weathergetter/configuration"
 	"weathergetter/influxif"
 	"weathergetter/thingsif"
@@ -38,21 +42,35 @@ func main() {
 	hist, err := mqtt.GetLast7days()
 
 	inf.SyncDatabase(hist)
-
-	for {
-		nodeData, err := mqtt.WaitForData()
-		if err != nil {
-			log.Printf("Error: %v", err)
-		} else {
-			log.Printf("Time: %v\n", nodeData.Metadata.Time)
-			log.Printf("Temperature: %v\n", nodeData.Payload_fields.Temp)
-			log.Printf("Humidity: %v\n", nodeData.Payload_fields.Humd)
-			log.Printf("Battery: %v\n", nodeData.Payload_fields.Bat)
-			thingsif.PrintGatways(nodeData.Metadata.Gateways)
-			err := inf.WriteToDatabase(nodeData)
+	go func() {
+		for {
+			nodeData, err := mqtt.WaitForData()
 			if err != nil {
-				log.Printf("Batch point error: %v\n", err)
+				log.Printf("Error: %v", err)
+			} else {
+				log.Printf("Time: %v\n", nodeData.Metadata.Time)
+				log.Printf("Temperature: %v\n", nodeData.Payload_fields.Temp)
+				log.Printf("Humidity: %v\n", nodeData.Payload_fields.Humd)
+				log.Printf("Battery: %v\n", nodeData.Payload_fields.Bat)
+				thingsif.PrintGatways(nodeData.Metadata.Gateways)
+				err := inf.WriteToDatabase(nodeData)
+				if err != nil {
+					log.Printf("Batch point error: %v\n", err)
+				}
 			}
 		}
-	}
+	}()
+	sysd.SdNotify(false, "READY=1")
+
+	termChan := make(chan os.Signal, 1)
+	signal.Notify(termChan, syscall.SIGTERM, syscall.SIGINT)
+	<-termChan
+	go func() {
+		time.Sleep(10 * time.Second)
+		panic("Unclean shutdown.")
+	}()
+	mqtt.Close()
+	inf.Close()
+	log.Print("Graceful shutdown.")
+	os.Exit(0)
 }

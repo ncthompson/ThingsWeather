@@ -197,3 +197,7 @@ func (inf *influxIf) SyncDatabase(data []thingsif.DbMessage) error {
 	}
 	return nil
 }
+
+func (inf *influxIf) Close() {
+	inf.cli.Close()
+}

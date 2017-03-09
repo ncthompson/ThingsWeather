@@ -130,3 +130,7 @@ func PrintGatways(gw []*GwMetadata) {
 		log.Printf("SNR:%v\n", gw[i].Snr)
 	}
 }
+
+func (mq *mqttCli) Close() {
+	mq.cli.Disconnect(1000)
+}
