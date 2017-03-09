@@ -110,10 +110,10 @@ void initialize_radio()
   Serial.println("Trying to join TTN");
   bool join_result = false;
 
-  myLora.setFrequencyPlan(TTN_EU);
-
   //ABP: initABP(String addr, String AppSKey, String NwkSKey);
   join_result = myLora.initABP("XXXXXXXX", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+
+  myLora.setFrequencyPlan(TTN_EU);
 
   while(!join_result)
   {
