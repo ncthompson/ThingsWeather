@@ -215,6 +215,7 @@ void buildPayload() {
 
 void loop() {
   startTime = millis();
+  buildPayload();
   // Start job
   do_send(&sendjob);
   while(LMIC.opmode & OP_TXRXPEND)
