@@ -29,12 +29,13 @@
 dht DHT;
 
 #define DHT22_PIN 11
+#define DHT_VCC 27
 
 // LoRaWAN NwkSKey, network session key
-static const PROGMEM u1_t NWKSKEY[16] = { 0xD4, 0x99, 0xE5, 0x84, 0x58, 0x24, 0x69, 0x17, 0xFD, 0x01, 0xFE, 0x8F, 0xBC, 0xA7, 0xDC, 0xA0 };
+static const u1_t NWKSKEY[16] = { 0xD4, 0x99, 0xE5, 0x84, 0x58, 0x24, 0x69, 0x17, 0xFD, 0x01, 0xFE, 0x8F, 0xBC, 0xA7, 0xDC, 0xA0 };
 
 // LoRaWAN AppSKey, application session key
-static const u1_t PROGMEM APPSKEY[16] = { 0x14, 0xEA, 0x44, 0x24, 0x13, 0x1E, 0xFF, 0x92, 0x30, 0x1C, 0x15, 0x6B, 0x75, 0x71, 0x5F, 0x05 };
+static const u1_t APPSKEY[16] = { 0x14, 0xEA, 0x44, 0x24, 0x13, 0x1E, 0xFF, 0x92, 0x30, 0x1C, 0x15, 0x6B, 0x75, 0x71, 0x5F, 0x05 };
 
 // LoRaWAN end-device address (DevAddr)
 static const u4_t DEVADDR = 0x2601186F;
@@ -145,6 +146,10 @@ void do_send(osjob_t* j){
 void setup() {
   Serial.begin(115200);
   Serial.println(F("Starting"));
+  
+  pinMode(DHT_VCC, OUTPUT);
+  pinMode(DHT22_PIN, INPUT);
+  
   // LMIC init
   os_init();
   lmic_init();
@@ -154,20 +159,7 @@ void lmic_init()
 {
     // LMIC init
     LMIC_reset();
-    
-    #ifdef PROGMEM
-    // On AVR, these values are stored in flash and only copied to RAM
-    // once. Copy them to a temporary buffer here, LMIC_setSession will
-    // copy them into a buffer of its own again.
-    uint8_t appskey[sizeof(APPSKEY)];
-    uint8_t nwkskey[sizeof(NWKSKEY)];
-    memcpy_P(appskey, APPSKEY, sizeof(APPSKEY));
-    memcpy_P(nwkskey, NWKSKEY, sizeof(NWKSKEY));
-    LMIC_setSession (0x1, DEVADDR, nwkskey, appskey);
-    #else
-    // If not running an AVR with PROGMEM, just use the arrays directly
     LMIC_setSession (0x1, DEVADDR, NWKSKEY, APPSKEY);
-    #endif
 
     LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
     LMIC_setupChannel(1, 868300000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
@@ -190,18 +182,20 @@ void lmic_init()
 }
 
 void buildPayload() {
+  battery = readVcc();
+  
   // Switch on DHT22
-  pinMode(27, OUTPUT);
-  digitalWrite(27, HIGH);
-
-  delay(1);
+  digitalWrite(DHT_VCC, HIGH);
+  delay(1000);
   DHT.read22(DHT22_PIN);
-  digitalWrite(27, LOW);
 
   temp_c = int16_t(DHT.temperature*100);
   humidity = int16_t(DHT.humidity*100);
-  battery = readVcc;
+  digitalWrite(DHT_VCC, LOW);
 
+  Serial.println(temp_c);
+  Serial.println(humidity);
+  Serial.println(battery);
 
   txBuffer[0] = byte(temp_c>>8);
   txBuffer[1] = byte(temp_c);
@@ -216,7 +210,7 @@ void buildPayload() {
 void loop() {
   startTime = millis();
   buildPayload();
-  // Start job
+  // Queue packet for TX
   do_send(&sendjob);
   while(LMIC.opmode & OP_TXRXPEND)
   {
@@ -240,16 +234,7 @@ void sleep() {
 
 uint16_t readVcc() {
   // Read 1.1V reference against AVcc
-  // set the reference to Vcc and the measurement to the internal 1.1V reference
-  #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
-    ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
-  #elif defined (__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
-    ADMUX = _BV(MUX5) | _BV(MUX0);
-  #elif defined (__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
-    ADMUX = _BV(MUX3) | _BV(MUX2);
-  #else
-    ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
-  #endif  
+  ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
 
   delay(2); // Wait for Vref to settle
   ADCSRA |= _BV(ADSC); // Start conversion
@@ -263,4 +248,3 @@ uint16_t readVcc() {
   result = 1125300L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
   return result; // Vcc in millivolts
 }
-
