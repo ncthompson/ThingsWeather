@@ -31,18 +31,13 @@ dht DHT;
 #define DHT22_PIN 11
 
 // LoRaWAN NwkSKey, network session key
-// This is the default Semtech key, which is used by the prototype TTN
-// network initially.
-static const PROGMEM u1_t NWKSKEY[16] = { 0xE6, 0x4B, 0xFB, 0x53, 0x10, 0x2C, 0x74, 0x04, 0x2E, 0x50, 0xBB, 0xEF, 0xAF, 0x00, 0x4C, 0x40 };
+static const PROGMEM u1_t NWKSKEY[16] = { 0xD4, 0x99, 0xE5, 0x84, 0x58, 0x24, 0x69, 0x17, 0xFD, 0x01, 0xFE, 0x8F, 0xBC, 0xA7, 0xDC, 0xA0 };
 
 // LoRaWAN AppSKey, application session key
-// This is the default Semtech key, which is used by the prototype TTN
-// network initially.
-static const u1_t PROGMEM APPSKEY[16] = { 0xA5, 0x6F, 0x6F, 0x39, 0x0D, 0x8C, 0x67, 0x85, 0xFF, 0xCA, 0xB5, 0x5F, 0x55, 0xF6, 0xA4, 0x21 };
+static const u1_t PROGMEM APPSKEY[16] = { 0x14, 0xEA, 0x44, 0x24, 0x13, 0x1E, 0xFF, 0x92, 0x30, 0x1C, 0x15, 0x6B, 0x75, 0x71, 0x5F, 0x05 };
 
 // LoRaWAN end-device address (DevAddr)
-// See http://thethingsnetwork.org/wiki/AddressSpace
-static const u4_t DEVADDR = 0x02017202 ; // <-- Change this address for every node!
+static const u4_t DEVADDR = 0x2601186F;
 
 // These callbacks are only used in over-the-air activation, so they are
 // left empty here (we cannot leave them out completely unless
@@ -159,7 +154,20 @@ void lmic_init()
 {
     // LMIC init
     LMIC_reset();
+    
+    #ifdef PROGMEM
+    // On AVR, these values are stored in flash and only copied to RAM
+    // once. Copy them to a temporary buffer here, LMIC_setSession will
+    // copy them into a buffer of its own again.
+    uint8_t appskey[sizeof(APPSKEY)];
+    uint8_t nwkskey[sizeof(NWKSKEY)];
+    memcpy_P(appskey, APPSKEY, sizeof(APPSKEY));
+    memcpy_P(nwkskey, NWKSKEY, sizeof(NWKSKEY));
+    LMIC_setSession (0x1, DEVADDR, nwkskey, appskey);
+    #else
+    // If not running an AVR with PROGMEM, just use the arrays directly
     LMIC_setSession (0x1, DEVADDR, NWKSKEY, APPSKEY);
+    #endif
 
     LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
     LMIC_setupChannel(1, 868300000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
