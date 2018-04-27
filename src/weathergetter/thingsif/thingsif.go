@@ -49,6 +49,8 @@ type NodeEntry struct {
 	Bat   float64 `json:"bat"`
 	Humd  float64 `json:"humd"`
 	Temp  float64 `json:"temp"`
+	Rain  float64 `json:"rain,omitempty"`
+	Pres  float64 `json:"pres,omitempty"`
 	Valid bool    `json:"valid"`
 }
 

@@ -48,14 +48,28 @@ func main() {
 			if err != nil {
 				log.Printf("Error: %v", err)
 			} else {
-				log.Printf("Time: %v\n", nodeData.Metadata.Time)
-				log.Printf("Temperature: %v\n", nodeData.Payload_fields.Temp)
-				log.Printf("Humidity: %v\n", nodeData.Payload_fields.Humd)
-				log.Printf("Battery: %v\n", nodeData.Payload_fields.Bat)
-				thingsif.PrintGatways(nodeData.Metadata.Gateways)
-				err := inf.WriteToDatabase(nodeData)
-				if err != nil {
-					log.Printf("Batch point error: %v\n", err)
+				if nodeData != nil && nodeData.Payload_fields != nil {
+					if nodeData.Payload_fields.Valid {
+						log.Printf("Node: %v\n", nodeData.DevId)
+						log.Printf("Time: %v\n", nodeData.Metadata.Time)
+						log.Printf("Temperature: %v\n", nodeData.Payload_fields.Temp)
+						log.Printf("Humidity: %v\n", nodeData.Payload_fields.Humd)
+						log.Printf("Battery: %v\n", nodeData.Payload_fields.Bat)
+						log.Printf("Rain: %v\n", nodeData.Payload_fields.Rain)
+						log.Printf("Pressure: %v\n", nodeData.Payload_fields.Pres)
+						thingsif.PrintGatways(nodeData.Metadata.Gateways)
+						err := inf.WriteToDatabase(nodeData)
+						if err != nil {
+							log.Printf("Batch point error: %v\n", err)
+						}
+					} else {
+						log.Printf("Invalid Gateway")
+						log.Printf("Time: %v\n", nodeData.Metadata.Time)
+						log.Printf("Temperature: %v\n", nodeData.Payload_fields.Temp)
+						log.Printf("Humidity: %v\n", nodeData.Payload_fields.Humd)
+						log.Printf("Battery: %v\n", nodeData.Payload_fields.Bat)
+						log.Printf("Rain: %v\n", nodeData.Payload_fields.Rain)
+					}
 				}
 			}
 		}

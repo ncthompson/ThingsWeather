@@ -92,6 +92,16 @@ func (inf *influxIf) dataToBatch(data *thingsif.Message) (client.BatchPoints, er
 		if err != nil {
 			return bp, err
 		}
+
+		err = addDataPoint("rain-tips", pld.Rain, timeStamp, tags, bp)
+		if err != nil {
+			return bp, err
+		}
+
+		err = addDataPoint("pressure", pld.Pres, timeStamp, tags, bp)
+		if err != nil {
+			return bp, err
+		}
 	}
 	tags["modulation"] = meta.Modulation
 	tags["data_rate"] = meta.DataRate
