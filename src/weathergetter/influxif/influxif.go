@@ -6,6 +6,7 @@ import (
 	"log"
 	"strconv"
 	"time"
+	"weathergetter/stbsource"
 	"weathergetter/thingsif"
 )
 
@@ -141,6 +142,38 @@ func (inf *influxIf) dataToBatch(data *thingsif.Message) (client.BatchPoints, er
 	}
 
 	return bp, nil
+}
+
+func (inf *influxIf) stbDataToBatch(data *stbsource.StbWeather) (client.BatchPoints, error) {
+	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
+		Database:  inf.conf.Database,
+		Precision: precision,
+	})
+	if err != nil {
+		return bp, err
+	}
+	tags := map[string]string{
+		"device-id": data.Station,
+	}
+
+	err = addDataPoint("temperature", data.Temperature, data.Timestamp.UTC(), tags, bp)
+	if err != nil {
+		return bp, err
+	}
+
+	err = addDataPoint("humidity", data.Humidity, data.Timestamp.UTC(), tags, bp)
+	if err != nil {
+		return bp, err
+	}
+	return bp, nil
+}
+
+func (inf *influxIf) WriteStbToDatabase(data *stbsource.StbWeather) error {
+	batch, err := inf.stbDataToBatch(data)
+	if err != nil {
+		return err
+	}
+	return inf.cli.Write(batch)
 }
 
 func (inf *influxIf) WriteToDatabase(data *thingsif.Message) error {
