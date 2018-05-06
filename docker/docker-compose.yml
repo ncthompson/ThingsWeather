@@ -1,0 +1,32 @@
+version: '2'
+services:
+  db:
+    image: influxdb
+    restart: always
+    volumes:
+      # Set the location of the database
+      - $(PWD):/var/lib/influxdb
+    ports:
+      - 8086:8086
+
+  getter:
+    image: getter
+    restart: always
+    depends_on:
+      - db
+    volumes:
+      # Set the location of the getter configuration file
+      - ./config.json:/app/config.json
+
+  grafana:
+    image: grafana/grafana
+    restart: always
+    depends_on:
+      - db
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    ports:
+      - 3000:3000
+
+volumes:
+  grafana-storage:
