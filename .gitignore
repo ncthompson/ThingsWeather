@@ -24,10 +24,7 @@ _testmain.go
 *.prof
 
 # Folders to ignore
-bin/
-pkg/
-src/github.com/
-src/golang.org/
+vendor/
 
 # Ignore config file to avoid pushing personal info
 config.json
