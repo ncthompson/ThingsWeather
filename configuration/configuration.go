@@ -2,8 +2,8 @@ package configuration
 
 import (
 	"encoding/json"
-	"interfaces/influxif"
-	"interfaces/thingsif"
+	"github.com/ncthompson/ThingsWeather/interfaces/influxif"
+	"github.com/ncthompson/ThingsWeather/interfaces/thingsif"
 	"os"
 )
 

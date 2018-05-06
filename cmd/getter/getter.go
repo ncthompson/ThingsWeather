@@ -1,11 +1,11 @@
 package main
 
 import (
-	"configuration"
 	"flag"
 	sysd "github.com/coreos/go-systemd/daemon"
-	"interfaces/influxif"
-	"interfaces/thingsif"
+	"github.com/ncthompson/ThingsWeather/configuration"
+	"github.com/ncthompson/ThingsWeather/interfaces/influxif"
+	"github.com/ncthompson/ThingsWeather/interfaces/thingsif"
 	"log"
 	"os"
 	"os/signal"

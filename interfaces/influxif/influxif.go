@@ -3,8 +3,8 @@ package influxif
 import (
 	"fmt"
 	"github.com/influxdata/influxdb/client/v2"
-	"interfaces/stbsource"
-	"interfaces/thingsif"
+	"github.com/ncthompson/ThingsWeather/interfaces/stbsource"
+	"github.com/ncthompson/ThingsWeather/interfaces/thingsif"
 	"log"
 	"strconv"
 	"time"

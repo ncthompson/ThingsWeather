@@ -1,10 +1,10 @@
 package main
 
 import (
-	"configuration"
 	"flag"
-	"interfaces/influxif"
-	"interfaces/stbsource"
+	"github.com/ncthompson/ThingsWeather/configuration"
+	"github.com/ncthompson/ThingsWeather/interfaces/influxif"
+	"github.com/ncthompson/ThingsWeather/interfaces/stbsource"
 	"log"
 	"time"
 )
