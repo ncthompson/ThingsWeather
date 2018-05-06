@@ -1,16 +1,16 @@
 package main
 
 import (
+	"configuration"
 	"flag"
 	sysd "github.com/coreos/go-systemd/daemon"
+	"interfaces/influxif"
+	"interfaces/thingsif"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-	"weathergetter/configuration"
-	"weathergetter/influxif"
-	"weathergetter/thingsif"
 )
 
 func main() {

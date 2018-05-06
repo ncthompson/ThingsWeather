@@ -1,16 +1,17 @@
 package main
 
 import (
+	"configuration"
 	"flag"
+	"interfaces/influxif"
+	"interfaces/stbsource"
 	"log"
 	"time"
-	"weathergetter/configuration"
-	"weathergetter/influxif"
-	"weathergetter/stbsource"
 )
 
 func main() {
 	configFile := flag.String("config", "config.json", "Configuration file location.")
+	updateRate := flag.Int("rate", 30, "Set the update rate in seconds")
 	flag.Parse()
 
 	config, err := configuration.OpenConfig(*configFile)
@@ -22,8 +23,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to start Influxdb client: %v\n", err)
 	}
-
-	for {
+	ticker := time.NewTicker(time.Duration(*updateRate) * time.Second)
+	for range ticker.C {
 		measure, err := stbsource.GetStbSource()
 		if err != nil {
 			log.Printf("ERROR: %v\n", err)
@@ -33,6 +34,5 @@ func main() {
 				log.Printf("ERROR: %v\n", err)
 			}
 		}
-		time.Sleep(30 * time.Second)
 	}
 }

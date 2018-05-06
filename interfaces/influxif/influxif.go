@@ -3,11 +3,11 @@ package influxif
 import (
 	"fmt"
 	"github.com/influxdata/influxdb/client/v2"
+	"interfaces/stbsource"
+	"interfaces/thingsif"
 	"log"
 	"strconv"
 	"time"
-	"weathergetter/stbsource"
-	"weathergetter/thingsif"
 )
 
 const precision = "ns"

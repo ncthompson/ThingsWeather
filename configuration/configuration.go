@@ -2,9 +2,9 @@ package configuration
 
 import (
 	"encoding/json"
+	"interfaces/influxif"
+	"interfaces/thingsif"
 	"os"
-	"weathergetter/influxif"
-	"weathergetter/thingsif"
 )
 
 type GetterConfig struct {
