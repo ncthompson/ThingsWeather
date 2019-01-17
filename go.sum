@@ -1,0 +1,8 @@
+github.com/coreos/go-systemd v0.0.0-20180202092358-40e2722dffea h1:IHPWgevPcOUjTvj3n7Qgm+nie6xs/xV8dmO5MddNTpc=
+github.com/coreos/go-systemd v0.0.0-20180202092358-40e2722dffea/go.mod h1:F5haX7vjVVG0kc13fIWeqUViNPyEJxv/OmvnBo0Yme4=
+github.com/eclipse/paho.mqtt.golang v1.1.1 h1:iPJYXJLaViCshRTW/PSqImSS6HJ2Rf671WR0bXZ2GIU=
+github.com/eclipse/paho.mqtt.golang v1.1.1/go.mod h1:H9keYFcgq3Qr5OUJm/JZI/i6U7joQ8SYLhZwfeOo6Ts=
+github.com/influxdata/influxdb v1.5.2 h1:8aMxqeraY0u+2KCbuyv0F8AJolFZnrEUJaJEhavAr/4=
+github.com/influxdata/influxdb v1.5.2/go.mod h1:qZna6X/4elxqT3yI9iZYdZrWWdeFOOprn86kgg4+IzY=
+golang.org/x/net v0.0.0-20180502164142-640f4622ab69 h1:+Ybm3UzSfPpp+Hlr62ZTCtbC9DmCKX61f0r74+peGts=
+golang.org/x/net v0.0.0-20180502164142-640f4622ab69/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
