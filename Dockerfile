@@ -1,5 +1,5 @@
 FROM golang:alpine as builder
-RUN apk add git
+RUN apk add git build-base
 RUN mkdir /build
 ADD . /build/
 WORKDIR /build
