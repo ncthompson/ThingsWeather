@@ -1,9 +1,13 @@
+.PHONY: install gofmt docker
 
 install:
-	go install ./cmd...
+	go build ./cmd...
 
 gofmt:
 	gofmt -l -s -w .
+
+docker:
+	docker build --tag getter .
 
 clean:
 	rm bin/*
