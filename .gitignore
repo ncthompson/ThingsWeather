@@ -23,9 +23,6 @@ _testmain.go
 *.test
 *.prof
 
-# Folders to ignore
-vendor/
-
 # Ignore config file to avoid pushing personal info
 config.json
 
