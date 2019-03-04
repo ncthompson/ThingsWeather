@@ -3,7 +3,7 @@ RUN apk add git build-base
 RUN mkdir /build
 ADD . /build/
 WORKDIR /build
-RUN go build -o getter ./cmd/getter
+RUN go build -o getter -mod=vendor ./cmd/getter
 FROM alpine
 RUN adduser -S -D -H -h /app getteruser
 USER getteruser
