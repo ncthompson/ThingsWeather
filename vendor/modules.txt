@@ -1,0 +1,13 @@
+# github.com/coreos/go-systemd v0.0.0-20180202092358-40e2722dffea
+github.com/coreos/go-systemd/daemon
+# github.com/eclipse/paho.mqtt.golang v1.1.1
+github.com/eclipse/paho.mqtt.golang
+github.com/eclipse/paho.mqtt.golang/packets
+# github.com/influxdata/influxdb v1.5.2
+github.com/influxdata/influxdb/client/v2
+github.com/influxdata/influxdb/models
+github.com/influxdata/influxdb/pkg/escape
+# golang.org/x/net v0.0.0-20180502164142-640f4622ab69
+golang.org/x/net/proxy
+golang.org/x/net/websocket
+golang.org/x/net/internal/socks
