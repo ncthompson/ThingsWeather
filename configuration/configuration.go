@@ -2,14 +2,15 @@ package configuration
 
 import (
 	"encoding/json"
+	"os"
+
 	"github.com/ncthompson/ThingsWeather/interfaces/influxif"
 	"github.com/ncthompson/ThingsWeather/interfaces/thingsif"
-	"os"
 )
 
 type GetterConfig struct {
 	DbConfig influxif.InfluxConfig
-	MConfig  thingsif.MqttConfig
+	MConfig  thingsif.MQTTConfig
 }
 
 func sampleConfig() GetterConfig {
@@ -20,7 +21,7 @@ func sampleConfig() GetterConfig {
 		Password:    "database_password",
 	}
 
-	mq := thingsif.MqttConfig{
+	mq := thingsif.MQTTConfig{
 		Username: "application_id",
 		Password: "access_key",
 	}
@@ -34,10 +35,11 @@ func sampleConfig() GetterConfig {
 
 func CreateConfigTemplate() error {
 	f, err := os.Create("sampleConfig.json")
-	defer f.Close()
 	if err != nil {
 		return err
 	}
+	defer f.Close()
+
 	sample := sampleConfig()
 	conf, err := json.MarshalIndent(sample, "", "\t")
 	if err != nil {
@@ -49,10 +51,11 @@ func CreateConfigTemplate() error {
 
 func OpenConfig(file string) (*GetterConfig, error) {
 	f, err := os.Open(file)
-	defer f.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
+
 	conf := &GetterConfig{}
 	data := make([]byte, 4096)
 	n, err := f.Read(data)

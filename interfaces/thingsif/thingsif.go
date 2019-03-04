@@ -3,9 +3,10 @@ package thingsif
 import (
 	"encoding/json"
 	"fmt"
-	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"log"
 	"os"
+
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
 /*
@@ -14,26 +15,26 @@ import (
 
 type GwMetadata struct {
 	Timestamp  int64   `json:"timestamp"`
-	GtwId      string  `json:"gtw_id"`
+	GtwID      string  `json:"gtw_id"`
 	GtwTrusted bool    `json:"gtw_trusted"`
 	Channel    int     `json:"channel"`
-	Rssi       float64 `json:"rssi"`
-	Snr        float64 `json:"snr"`
-	RfChain    int     `json:"rf_chain"`
+	RSSI       float64 `json:"rssi"`
+	SNR        float64 `json:"snr"`
+	RFChain    int     `json:"rf_chain"`
 	Latitude   float64 `json:"latitude"`
 	Longitude  float64 `json:"longitude"`
 	Altitude   float64 `json:"altitude"`
 }
 
 type Message struct {
-	Payload_fields *NodeEntry    `json:"payload_fields"`
-	DevId          string        `json:"dev_id"`
-	AppId          string        `json:"app_id"`
-	HwSerial       string        `json:"hardware_serial"`
-	Port           int           `json:"port"`
-	Counter        int           `json:"counter"`
-	PayloadRaw     string        `json:"payload_raw"`
-	Metadata       *NodeMetadata `json:"metadata"`
+	PayloadFields *NodeEntry    `json:"payload_fields"`
+	DevID         string        `json:"dev_id"`
+	AppID         string        `json:"app_id"`
+	HWSerial      string        `json:"hardware_serial"`
+	Port          int           `json:"port"`
+	Counter       int           `json:"counter"`
+	PayloadRaw    string        `json:"payload_raw"`
+	Metadata      *NodeMetadata `json:"metadata"`
 }
 
 type NodeMetadata struct {
@@ -47,7 +48,7 @@ type NodeMetadata struct {
 
 type NodeEntry struct {
 	Bat   float64 `json:"bat"`
-	Humd  float64 `json:"humd"`
+	Humid float64 `json:"humd"`
 	Temp  float64 `json:"temp"`
 	Rain  float64 `json:"rain,omitempty"`
 	Pres  float64 `json:"pres,omitempty"`
@@ -58,19 +59,19 @@ type NodeEntry struct {
    Configuration
 */
 
-type MqttConfig struct {
+type MQTTConfig struct {
 	Username string
 	Password string
 }
 
-type mqttCli struct {
+type MQTTCli struct {
 	choke chan [2]string
 	cli   MQTT.Client
-	conf  MqttConfig
+	conf  MQTTConfig
 }
 
-func InitialiseMqttClient(conf MqttConfig) (*mqttCli, error) {
-	mqtt := &mqttCli{}
+func NewClient(conf MQTTConfig) (*MQTTCli, error) {
+	mqtt := &MQTTCli{}
 	mqtt.conf = conf
 
 	opts := MQTT.NewClientOptions()
@@ -111,7 +112,7 @@ func InitialiseMqttClient(conf MqttConfig) (*mqttCli, error) {
 /*
  * Blocks on incoming message.
  */
-func (mq *mqttCli) WaitForData() (*Message, error) {
+func (mq *MQTTCli) WaitForData() (*Message, error) {
 	msg := &Message{}
 	incoming := <-mq.choke
 	err := json.Unmarshal([]byte(incoming[1]), msg)
@@ -127,12 +128,12 @@ func (mq *mqttCli) WaitForData() (*Message, error) {
  */
 func PrintGatways(gw []*GwMetadata) {
 	for i := 0; i < len(gw); i++ {
-		log.Printf("GW Id:%v\n", gw[i].GtwId)
-		log.Printf("RSSI:%v\n", gw[i].Rssi)
-		log.Printf("SNR:%v\n", gw[i].Snr)
+		log.Printf("GW Id:%v\n", gw[i].GtwID)
+		log.Printf("RSSI:%v\n", gw[i].RSSI)
+		log.Printf("SNR:%v\n", gw[i].SNR)
 	}
 }
 
-func (mq *mqttCli) Close() {
+func (mq *MQTTCli) Close() {
 	mq.cli.Disconnect(1000)
 }
