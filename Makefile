@@ -12,3 +12,7 @@ docker:
 clean:
 	rm bin/*
 	rm -r pkg
+
+vendor:
+	go mod tidy
+	go mod vendor
