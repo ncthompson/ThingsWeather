@@ -29,7 +29,7 @@ notifications:
 # build and immediately stop. It's sorta like having set -e enabled in bash.
 # Make sure golangci-lint is vendored.
 before_script:
-  - GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.14.1
+  - GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.15.0
   - golangci-lint run
 
 # script always runs to completion (set +e). If we have linter issues AND a
