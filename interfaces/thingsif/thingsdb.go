@@ -34,6 +34,6 @@ func (mq *mqttCli) GetLast7days() ([]DbMessage, error) {
 	if err != nil {
 		return messages, fmt.Errorf("Failed to get history: %v", err)
 	}
-	fmt.Printf("done get\n", time.Now())
+	fmt.Printf("done get %v\n", time.Now())
 	return messages, nil
 }
