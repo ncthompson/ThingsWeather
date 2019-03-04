@@ -2,15 +2,16 @@ package main
 
 import (
 	"flag"
-	sysd "github.com/coreos/go-systemd/daemon"
-	"github.com/ncthompson/ThingsWeather/configuration"
-	"github.com/ncthompson/ThingsWeather/interfaces/influxif"
-	"github.com/ncthompson/ThingsWeather/interfaces/thingsif"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	sysd "github.com/coreos/go-systemd/daemon"
+	"github.com/ncthompson/ThingsWeather/configuration"
+	"github.com/ncthompson/ThingsWeather/interfaces/influxif"
+	"github.com/ncthompson/ThingsWeather/interfaces/thingsif"
 )
 
 func main() {
@@ -27,54 +28,30 @@ func main() {
 
 	config, err := configuration.OpenConfig(*configFile)
 	if err != nil {
-		log.Fatalf("Failed to open configuraion: %v.\n", err)
+		log.Fatalf("Failed to open configuration: %v.\n", err)
 	}
 
-	mqtt, err := thingsif.InitialiseMqttClient(config.MConfig)
+	mqtt, err := thingsif.NewClient(config.MConfig)
 	if err != nil {
 		log.Fatalf("Failed to start MQTT client: %v\n", err)
 	}
-	inf, err := influxif.InitialiseInfluxClient(config.DbConfig)
+	inf, err := influxif.NewClient(config.DbConfig)
 	if err != nil {
 		log.Fatalf("Failed to start Influxdb client: %v\n", err)
 	}
 
 	hist, err := mqtt.GetLast7days()
+	if err != nil {
+		log.Printf("Could not sync old data: %v", err)
+	} else {
+		_ = inf.SyncDatabase(hist)
+	}
 
-	inf.SyncDatabase(hist)
-	go func() {
-		for {
-			nodeData, err := mqtt.WaitForData()
-			if err != nil {
-				log.Printf("Error: %v", err)
-			} else {
-				if nodeData != nil && nodeData.Payload_fields != nil {
-					if nodeData.Payload_fields.Valid {
-						log.Printf("Node: %v\n", nodeData.DevId)
-						log.Printf("Time: %v\n", nodeData.Metadata.Time)
-						log.Printf("Temperature: %v\n", nodeData.Payload_fields.Temp)
-						log.Printf("Humidity: %v\n", nodeData.Payload_fields.Humd)
-						log.Printf("Battery: %v\n", nodeData.Payload_fields.Bat)
-						log.Printf("Rain: %v\n", nodeData.Payload_fields.Rain)
-						log.Printf("Pressure: %v\n", nodeData.Payload_fields.Pres)
-						thingsif.PrintGatways(nodeData.Metadata.Gateways)
-						err := inf.WriteToDatabase(nodeData)
-						if err != nil {
-							log.Printf("Batch point error: %v\n", err)
-						}
-					} else {
-						log.Printf("Invalid Gateway")
-						log.Printf("Time: %v\n", nodeData.Metadata.Time)
-						log.Printf("Temperature: %v\n", nodeData.Payload_fields.Temp)
-						log.Printf("Humidity: %v\n", nodeData.Payload_fields.Humd)
-						log.Printf("Battery: %v\n", nodeData.Payload_fields.Bat)
-						log.Printf("Rain: %v\n", nodeData.Payload_fields.Rain)
-					}
-				}
-			}
-		}
-	}()
-	sysd.SdNotify(false, "READY=1")
+	go updater(mqtt, inf)
+	_, err = sysd.SdNotify(false, "READY=1")
+	if err != nil {
+		log.Printf("Could not signal systemd: %v", err)
+	}
 
 	termChan := make(chan os.Signal, 1)
 	signal.Notify(termChan, syscall.SIGTERM, syscall.SIGINT)
@@ -87,4 +64,39 @@ func main() {
 	inf.Close()
 	log.Print("Graceful shutdown.")
 	os.Exit(0)
+}
+
+func updater(mqtt *thingsif.MQTTCli, inf *influxif.InfluxIf) {
+	for {
+		var nodeData *thingsif.Message
+		var err error
+		nodeData, err = mqtt.WaitForData()
+		if err != nil {
+			log.Printf("Error: %v", err)
+			continue
+		}
+		if nodeData != nil && nodeData.PayloadFields != nil {
+			if nodeData.PayloadFields.Valid {
+				log.Printf("Node: %v\n", nodeData.DevID)
+				log.Printf("Time: %v\n", nodeData.Metadata.Time)
+				log.Printf("Temperature: %v\n", nodeData.PayloadFields.Temp)
+				log.Printf("Humidity: %v\n", nodeData.PayloadFields.Humid)
+				log.Printf("Battery: %v\n", nodeData.PayloadFields.Bat)
+				log.Printf("Rain: %v\n", nodeData.PayloadFields.Rain)
+				log.Printf("Pressure: %v\n", nodeData.PayloadFields.Pres)
+				thingsif.PrintGatways(nodeData.Metadata.Gateways)
+				err = inf.WriteToDatabase(nodeData)
+				if err != nil {
+					log.Printf("Batch point error: %v\n", err)
+				}
+			} else {
+				log.Printf("Invalid Gateway")
+				log.Printf("Time: %v\n", nodeData.Metadata.Time)
+				log.Printf("Temperature: %v\n", nodeData.PayloadFields.Temp)
+				log.Printf("Humidity: %v\n", nodeData.PayloadFields.Humid)
+				log.Printf("Battery: %v\n", nodeData.PayloadFields.Bat)
+				log.Printf("Rain: %v\n", nodeData.PayloadFields.Rain)
+			}
+		}
+	}
 }

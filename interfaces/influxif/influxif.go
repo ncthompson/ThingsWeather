@@ -2,12 +2,13 @@ package influxif
 
 import (
 	"fmt"
-	"github.com/influxdata/influxdb/client/v2"
-	"github.com/ncthompson/ThingsWeather/interfaces/stbsource"
-	"github.com/ncthompson/ThingsWeather/interfaces/thingsif"
 	"log"
 	"strconv"
 	"time"
+
+	"github.com/influxdata/influxdb/client/v2"
+	"github.com/ncthompson/ThingsWeather/interfaces/stbsource"
+	"github.com/ncthompson/ThingsWeather/interfaces/thingsif"
 )
 
 const precision = "ns"
@@ -19,13 +20,13 @@ type InfluxConfig struct {
 	Password    string
 }
 
-type influxIf struct {
+type InfluxIf struct {
 	conf InfluxConfig
 	cli  client.Client
 }
 
-func InitialiseInfluxClient(conf InfluxConfig) (*influxIf, error) {
-	inf := &influxIf{}
+func NewClient(conf InfluxConfig) (*InfluxIf, error) {
+	inf := &InfluxIf{}
 	inf.conf = conf
 	idb, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     conf.HostAddress,
@@ -55,7 +56,7 @@ func addDataPoint(name string, value float64, ts time.Time, tags map[string]stri
 	return nil
 }
 
-func (inf *influxIf) dataToBatch(data *thingsif.Message) (client.BatchPoints, error) {
+func (inf *InfluxIf) dataToBatch(data *thingsif.Message) (client.BatchPoints, error) {
 
 	timeStamp, err := time.Parse(time.RFC3339Nano, data.Metadata.Time)
 	if err != nil {
@@ -71,35 +72,14 @@ func (inf *influxIf) dataToBatch(data *thingsif.Message) (client.BatchPoints, er
 	}
 
 	tags := map[string]string{
-		"device-id":       data.DevId,
-		"hardware-serial": data.HwSerial,
+		"device-id":       data.DevID,
+		"hardware-serial": data.HWSerial,
 		"port":            strconv.Itoa(data.Port),
 	}
-	pld := data.Payload_fields
+	payload := data.PayloadFields
 	meta := data.Metadata
-	if pld.Valid {
-
-		err = addDataPoint("temperature", pld.Temp, timeStamp, tags, bp)
-		if err != nil {
-			return bp, err
-		}
-
-		err = addDataPoint("humidity", pld.Humd, timeStamp, tags, bp)
-		if err != nil {
-			return bp, err
-		}
-
-		err = addDataPoint("battery-voltage", pld.Bat, timeStamp, tags, bp)
-		if err != nil {
-			return bp, err
-		}
-
-		err = addDataPoint("rain-tips", pld.Rain, timeStamp, tags, bp)
-		if err != nil {
-			return bp, err
-		}
-
-		err = addDataPoint("pressure", pld.Pres, timeStamp, tags, bp)
+	if payload.Valid {
+		err = setPayload(payload, timeStamp, tags, bp)
 		if err != nil {
 			return bp, err
 		}
@@ -115,27 +95,7 @@ func (inf *influxIf) dataToBatch(data *thingsif.Message) (client.BatchPoints, er
 
 	for i := 0; i < len(meta.Gateways); i++ {
 		gw := meta.Gateways[i]
-		tagsGw := tags
-		tagsGw["gtw_id"] = gw.GtwId
-		tagsGw["channel"] = strconv.Itoa(gw.Channel)
-		tagsGw["frequency"] = strconv.FormatFloat(meta.Frequency, 'f', 1, 64)
-		err = addDataPoint("rssi", gw.Rssi, timeStamp, tagsGw, bp)
-		if err != nil {
-			return bp, err
-		}
-		err = addDataPoint("snr", gw.Snr, timeStamp, tagsGw, bp)
-		if err != nil {
-			return bp, err
-		}
-		err = addDataPoint("altitude", gw.Altitude, timeStamp, tagsGw, bp)
-		if err != nil {
-			return bp, err
-		}
-		err = addDataPoint("latitude", gw.Latitude, timeStamp, tagsGw, bp)
-		if err != nil {
-			return bp, err
-		}
-		err = addDataPoint("longitude", gw.Longitude, timeStamp, tagsGw, bp)
+		err = setGateway(gw, meta.Frequency, timeStamp, tags, bp)
 		if err != nil {
 			return bp, err
 		}
@@ -144,7 +104,7 @@ func (inf *influxIf) dataToBatch(data *thingsif.Message) (client.BatchPoints, er
 	return bp, nil
 }
 
-func (inf *influxIf) stbDataToBatch(data *stbsource.StbWeather) (client.BatchPoints, error) {
+func (inf *InfluxIf) stbDataToBatch(data *stbsource.StbWeather) (client.BatchPoints, error) {
 	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
 		Database:  inf.conf.Database,
 		Precision: precision,
@@ -168,7 +128,7 @@ func (inf *influxIf) stbDataToBatch(data *stbsource.StbWeather) (client.BatchPoi
 	return bp, nil
 }
 
-func (inf *influxIf) WriteStbToDatabase(data *stbsource.StbWeather) error {
+func (inf *InfluxIf) WriteStbToDatabase(data *stbsource.StbWeather) error {
 	batch, err := inf.stbDataToBatch(data)
 	if err != nil {
 		return err
@@ -176,7 +136,7 @@ func (inf *influxIf) WriteStbToDatabase(data *stbsource.StbWeather) error {
 	return inf.cli.Write(batch)
 }
 
-func (inf *influxIf) WriteToDatabase(data *thingsif.Message) error {
+func (inf *InfluxIf) WriteToDatabase(data *thingsif.Message) error {
 	batch, err := inf.dataToBatch(data)
 	if err != nil {
 		return err
@@ -184,7 +144,7 @@ func (inf *influxIf) WriteToDatabase(data *thingsif.Message) error {
 	return inf.cli.Write(batch)
 }
 
-func (inf *influxIf) SyncDatabase(data []thingsif.DbMessage) error {
+func (inf *InfluxIf) SyncDatabase(data []thingsif.DbMessage) error {
 
 	log.Printf("Entries: %v\n", len(data))
 	added := 0
@@ -211,23 +171,13 @@ func (inf *influxIf) SyncDatabase(data []thingsif.DbMessage) error {
 
 		}
 		if len(response.Results[0].Series) == 0 {
-			pld := data[i]
-			if pld.Valid {
+			payload := data[i]
+			if payload.Valid {
 				added++
 				tags := map[string]string{
-					"device-id": data[i].DevId,
+					"device-id": data[i].DevID,
 				}
-				err = addDataPoint("temperature", pld.Temp, ts, tags, bp)
-				if err != nil {
-					return err
-				}
-
-				err = addDataPoint("humidity", pld.Humd, ts, tags, bp)
-				if err != nil {
-					return err
-				}
-
-				err = addDataPoint("battery-voltage", pld.Bat, ts, tags, bp)
+				err = setPayload(payload.NodeEntry(), ts, tags, bp)
 				if err != nil {
 					return err
 				}
@@ -241,6 +191,58 @@ func (inf *influxIf) SyncDatabase(data []thingsif.DbMessage) error {
 	return nil
 }
 
-func (inf *influxIf) Close() {
+func setGateway(g *thingsif.GwMetadata, freq float64, t time.Time, tags map[string]string, bp client.BatchPoints) error {
+	tagsGW := tags
+	tagsGW["gtw_id"] = g.GtwID
+	tagsGW["channel"] = strconv.Itoa(g.Channel)
+	tagsGW["frequency"] = strconv.FormatFloat(freq, 'f', 1, 64)
+	err := addDataPoint("rssi", g.RSSI, t, tagsGW, bp)
+	if err != nil {
+		return err
+	}
+	err = addDataPoint("snr", g.SNR, t, tagsGW, bp)
+	if err != nil {
+		return err
+	}
+	err = addDataPoint("altitude", g.Altitude, t, tagsGW, bp)
+	if err != nil {
+		return err
+	}
+	err = addDataPoint("latitude", g.Latitude, t, tagsGW, bp)
+	if err != nil {
+		return err
+	}
+	err = addDataPoint("longitude", g.Longitude, t, tagsGW, bp)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func setPayload(p *thingsif.NodeEntry, t time.Time, tags map[string]string, bp client.BatchPoints) error {
+	err := addDataPoint("temperature", p.Temp, t, tags, bp)
+	if err != nil {
+		return err
+	}
+	err = addDataPoint("humidity", p.Humid, t, tags, bp)
+	if err != nil {
+		return err
+	}
+	err = addDataPoint("battery-voltage", p.Bat, t, tags, bp)
+	if err != nil {
+		return err
+	}
+	err = addDataPoint("rain-tips", p.Rain, t, tags, bp)
+	if err != nil {
+		return err
+	}
+	err = addDataPoint("pressure", p.Pres, t, tags, bp)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (inf *InfluxIf) Close() {
 	inf.cli.Close()
 }

@@ -2,11 +2,12 @@ package main
 
 import (
 	"flag"
+	"log"
+	"time"
+
 	"github.com/ncthompson/ThingsWeather/configuration"
 	"github.com/ncthompson/ThingsWeather/interfaces/influxif"
 	"github.com/ncthompson/ThingsWeather/interfaces/stbsource"
-	"log"
-	"time"
 )
 
 func main() {
@@ -19,7 +20,7 @@ func main() {
 		log.Fatalf("Failed to open configuraion: %v.\n", err)
 	}
 
-	inf, err := influxif.InitialiseInfluxClient(config.DbConfig)
+	inf, err := influxif.NewClient(config.DbConfig)
 	if err != nil {
 		log.Fatalf("Failed to start Influxdb client: %v\n", err)
 	}
