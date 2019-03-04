@@ -1,7 +1,7 @@
-.PHONY: install gofmt docker
+.PHONY: install gofmt docker clean vendor
 
-install:
-	go build ./cmd...
+getter:
+	go build -mod=vendor ./cmd/getter
 
 gofmt:
 	gofmt -l -s -w .
