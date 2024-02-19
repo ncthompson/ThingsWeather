@@ -19,3 +19,7 @@ vendor:
 
 lint:
 	golangci-lint run
+
+.PHONY: upgrade-vendor
+upgrade-vendor:
+	go get -u ./...

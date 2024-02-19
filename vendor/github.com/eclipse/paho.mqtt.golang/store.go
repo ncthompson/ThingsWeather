@@ -1,10 +1,14 @@
 /*
- * Copyright (c) 2013 IBM Corp.
+ * Copyright (c) 2021 IBM Corp and others.
  *
  * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * are made available under the terms of the Eclipse Public License v2.0
+ * and Eclipse Distribution License v1.0 which accompany this distribution.
+ *
+ * The Eclipse Public License is available at
+ *    https://www.eclipse.org/legal/epl-2.0/
+ * and the Eclipse Distribution License is available at
+ *   http://www.eclipse.org/org/documents/edl-v10.php.
  *
  * Contributors:
  *    Seth Hoenig
@@ -45,9 +49,19 @@ type Store interface {
 // where X is 'i' or 'o'
 func mIDFromKey(key string) uint16 {
 	s := key[2:]
-	i, err := strconv.Atoi(s)
+	i, err := strconv.ParseUint(s, 10, 16)
 	chkerr(err)
 	return uint16(i)
+}
+
+// Return true if key prefix is outbound
+func isKeyOutbound(key string) bool {
+	return key[:2] == outboundPrefix
+}
+
+// Return true if key prefix is inbound
+func isKeyInbound(key string) bool {
+	return key[:2] == inboundPrefix
 }
 
 // Return a string of the form "i.[id]"
